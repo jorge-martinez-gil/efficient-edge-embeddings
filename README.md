@@ -36,22 +36,6 @@ By measuring actual inference latency and estimating energy usage, E*3 applies a
 
 ## ⚙️ How It Works
 
-E*3 follows a modular pipeline to evaluate and optimize your models.
-
-```mermaid
-graph LR
-    A[Start] --> B(Load Model)
-    B --> C{Benchmark}
-    C -- Encode --> D[Measure Latency]
-    C -- Profile --> E[Estimate Energy]
-    D & E --> F[Apply Quantization]
-    F --> G[NSGA-II Search]
-    G --> H((Pareto Frontier))
-    
-    style A fill:#f9f,stroke:#333,stroke-width:2px
-    style H fill:#bbf,stroke:#333,stroke-width:2px
-
-```
 
 ### 1. Model Loading
 Models are loaded dynamically on first use to conserve resources until benchmarking begins.
