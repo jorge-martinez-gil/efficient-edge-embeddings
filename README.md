@@ -67,7 +67,6 @@ Quantization impacts accuracy. **E*3** applies specific accuracy shifts for:
 * `fp32` (Baseline)
 * `int8`
 * `int4`
-*(Note: This can be replaced by a custom evaluation routine for your specific dataset).*
 
 ### 5. Multi-Objective Search 🧬
 The **NSGA-II** algorithm iterates through generations of model/quantization combinations. Cached timing results are strictly reused to minimize search overhead.
