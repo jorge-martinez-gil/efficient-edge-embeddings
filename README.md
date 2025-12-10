@@ -1,69 +1,82 @@
-# E*3: Energy-Efficient Embedding Optimization  
-Optimizing Embedding Models for Edge-Class Hardware
+# E*3: Energy-Efficient Embedding Optimization
+### Optimizing Embedding Models for Edge-Class Hardware
 
 <p align="center">
-  <img src="logo.png" alt="E³ Logo" width="220"/>
+  <img src="logo.png" alt="E*3 Logo" width="250" style="border-radius: 10px;"/>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License" />
+  <img src="https://img.shields.io/badge/python-3.8%2B-blue?style=flat-square" alt="Python Version" />
+  <img src="https://img.shields.io/badge/hardware-Edge%20%7C%20CPU%20%7C%20GPU-orange?style=flat-square" alt="Hardware Support" />
+  <img src="https://img.shields.io/badge/search-NSGA--II-purple?style=flat-square" alt="Algorithm" />
 </p>
 
 ---
 
-## Overview
+## 📖 Overview
 
-E³ provides a practical way to benchmark and optimize embedding models on hardware with limited compute and power budgets.  
-The system measures actual inference latency, estimates energy usage, applies quantization settings, and performs a multi-objective evolutionary search to identify strong trade-offs between speed, efficiency, and embedding quality.
+**E*3** provides a practical framework to benchmark and optimize embedding models specifically for hardware with limited compute and power budgets. 
 
-Key capabilities include:
+By measuring actual inference latency and estimating energy usage, E*3 applies a **multi-objective evolutionary search** to identify the strongest trade-offs between speed, efficiency, and embedding quality.
 
-- Direct execution of SentenceTransformer models  
-- Latency benchmarking through repeated encoding  
-- Energy estimation linked to measured latency and device power  
-- Quantization-aware accuracy adjustments  
-- NSGA-II search over model and quantization choices  
-- Extraction and visualization of Pareto-optimal configurations  
+> **Core Value:** Move beyond theoretical FLOPs. E*3 benchmarks on *your* actual hardware to find the sweet spot between `int4` speed and `fp32` accuracy.
 
 ---
 
-## Features
+## ✨ Key Features
 
-- Real inference timing on CPU or GPU  
-- Support for several common embedding models  
-- Quantization modes: `fp32`, `int8`, `int4`  
-- Three optimization goals:  
-  - Low energy usage  
-  - Low latency  
-  - Minimal accuracy impact  
-- Caching to avoid repeated timing runs  
-- Pareto frontier visualization for fast comparison  
+| ⚡ **Performance & Power** | 🧠 **Intelligence & Search** | 📊 **Analysis** |
+| :--- | :--- | :--- |
+| **Real Inference Timing**<br>Benchmarks on actual CPU/GPU hardware (no simulations). | **NSGA-II Optimization**<br>Evolutionary search over model and quantization parameters. | **Pareto Frontier**<br>Automatically identifies and extracts optimal configurations. |
+| **Energy Estimation**<br>Links latency to device power profiles for Joules/inference data. | **Quantization Modes**<br>Support for `fp32`, `int8`, and `int4` precision. | **Visual Reports**<br>Scatter plots for Energy vs. Accuracy trade-offs. |
+| **Smart Caching**<br>Prevents redundant benchmarks to speed up search. | **Direct Execution**<br>Native support for `SentenceTransformer` models. | **Multi-Objective**<br>Balances Energy, Latency, and Accuracy simultaneously. |
 
 ---
 
-## How It Works
+## ⚙️ How It Works
 
-### Model loading  
-Models are loaded dynamically on first use.
+E*3 follows a modular pipeline to evaluate and optimize your models.
 
-### Latency measurement  
-A collection of sentences is encoded multiple times.  
-The average latency per encoding pass is computed.
+```mermaid
+graph LR
+    A[Start] --> B(Load Model)
+    B --> C{Benchmark}
+    C -- Encode --> D[Measure Latency]
+    C -- Profile --> E[Estimate Energy]
+    D & E --> F[Apply Quantization]
+    F --> G[NSGA-II Search]
+    G --> H((Pareto Frontier))
+    
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style H fill:#bbf,stroke:#333,stroke-width:2px
 
-### Energy estimation  
-Energy usage is estimated from measured latency and the declared power profile of the device.
+```
 
-### Accuracy modification  
-Each quantization option applies a small accuracy shift.  
-This can be replaced by a custom evaluation routine.
+### 1. Model Loading
+Models are loaded dynamically on first use to conserve resources until benchmarking begins.
 
-### Multi-objective search  
-NSGA-II evaluates model and quantization combinations.  
-Cached timing results are reused to reduce overhead.
+### 2. Latency Measurement ⏱️
+A standardized collection of sentences is encoded multiple times. **E*3** computes the **average latency per encoding pass** to ensure statistical significance.
 
-### Pareto frontier  
-All optimal configurations are listed and visualized.  
-The energy–accuracy scatter plot makes trade-offs easy to analyze.
+### 3. Energy Estimation 🔋
+Energy usage is derived by correlating the measured latency with the declared thermal design power (TDP) or power profile of the specific edge device.
+
+### 4. Accuracy Modification 🎯
+Quantization impacts accuracy. **E*3** applies specific accuracy shifts for:
+* `fp32` (Baseline)
+* `int8`
+* `int4`
+*(Note: This can be replaced by a custom evaluation routine for your specific dataset).*
+
+### 5. Multi-Objective Search 🧬
+The **NSGA-II** algorithm iterates through generations of model/quantization combinations. Cached timing results are strictly reused to minimize search overhead.
+
+### 6. Pareto Frontier Visualization 📉
+The system outputs the "Pareto Frontier"—the set of optimal configurations where no single metric can be improved without sacrificing another. This is visualized as an Energy–Accuracy scatter plot.
 
 ---
 
-## License
-
-MIT License
+## 📜 License
+This project is licensed under the **MIT License**.
 
