@@ -33,7 +33,7 @@ The rationale behind measuring actual inference latency and estimating energy us
 ## ⚙️ How It Works
 
 
-The system outputs the "Pareto Frontier"—the set of optimal configurations where no single metric can be improved without sacrificing another. This is visualized as an 3D scatter plot.
+The system outputs the "Pareto Frontier", the set of optimal configurations where no single metric can be improved without sacrificing another. This is visualized as an 3D scatter plot.
 
 ---
 
