@@ -1,6 +1,8 @@
 # E*3: Energy-Efficient Embedding Optimization
 ### Optimizing Embedding Models for Edge-Class Hardware
 
+(Repository under construction)
+
 <p align="center">
   <img src="logo.png" alt="E*3 Logo" width="250" style="border-radius: 10px;"/>
 </p>
@@ -26,36 +28,13 @@ By measuring actual inference latency and estimating energy usage, E*3 applies a
 
 ## ✨ Key Features
 
-| ⚡ **Performance & Power** | 🧠 **Intelligence & Search** | 📊 **Analysis** |
-| :--- | :--- | :--- |
-| **Real Inference Timing**<br>Benchmarks on actual CPU/GPU hardware (no simulations). | **NSGA-II Optimization**<br>Evolutionary search over model and quantization parameters. | **Pareto Frontier**<br>Automatically identifies and extracts optimal configurations. |
-| **Energy Estimation**<br>Links latency to device power profiles for Joules/inference data. | **Quantization Modes**<br>Support for `fp32`, `int8`, and `int4` precision. | **Visual Reports**<br>Scatter plots for Energy vs. Accuracy trade-offs. |
-| **Smart Caching**<br>Prevents redundant benchmarks to speed up search. | **Direct Execution**<br>Native support for `SentenceTransformer` models. | **Multi-Objective**<br>Balances Energy, Latency, and Accuracy simultaneously. |
+
 
 ---
 
 ## ⚙️ How It Works
 
 
-### 1. Model Loading
-Models are loaded dynamically on first use to conserve resources until benchmarking begins.
-
-### 2. Latency Measurement ⏱️
-A standardized collection of sentences is encoded multiple times. **E*3** computes the **average latency per encoding pass** to ensure statistical significance.
-
-### 3. Energy Estimation 🔋
-Energy usage is derived by correlating the measured latency with the declared thermal design power (TDP) or power profile of the specific edge device.
-
-### 4. Accuracy Modification 🎯
-Quantization impacts accuracy. **E*3** applies specific accuracy shifts for:
-* `fp32` (Baseline)
-* `int8`
-* `int4`
-
-### 5. Multi-Objective Search 🧬
-The **NSGA-II** algorithm iterates through generations of model/quantization combinations. Cached timing results are strictly reused to minimize search overhead.
-
-### 6. Pareto Frontier Visualization 📉
 The system outputs the "Pareto Frontier"—the set of optimal configurations where no single metric can be improved without sacrificing another. This is visualized as an Energy–Accuracy scatter plot.
 
 ---
