@@ -1,4 +1,4 @@
-# E³: Energy-Efficient Embedding Optimization  
+# E*3: Energy-Efficient Embedding Optimization  
 Optimizing Embedding Models for Edge-Class Hardware
 
 <p align="center">
