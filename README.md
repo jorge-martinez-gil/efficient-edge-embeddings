@@ -1,7 +1,6 @@
+
 # E*3: Energy-Efficient Embedding Optimization
 ### Optimizing Embedding Models for Edge-Class Hardware
-
-(Repository under construction)
 
 <p align="center">
   <img src="logo.png" alt="E*3 Logo" width="250" style="border-radius: 10px;"/>
@@ -24,18 +23,115 @@ The rationale behind measuring actual inference latency and estimating energy us
 
 ---
 
-## ✨ Key Features
+## 🔍 Goals
 
+Most embedding benchmarks rank models by **accuracy alone**, ignoring the latency and energy costs that dominate real-world deployments. This project reframes embedding selection as a **multi-objective optimization problem** over three axes:
 
+| Objective | Direction | Why It Matters |
+|-----------|-----------|----------------|
+| **Task Performance** | ↑ Maximize | Similarity, classification, or clustering quality |
+| **Inference Latency** | ↓ Minimize | Interactive services have strict time budgets |
+| **Energy Consumption** | ↓ Minimize | Operational cost and sustainability on edge devices |
+
+Using **Pareto dominance**, we identify which configurations are *admissible*, and which are **strictly dominated** (i.e., should never be deployed). A weight-free **knee-point rule** then recommends a single operating point without requiring subjective preferences.
+
+>  Many popular embedding setups are wasteful. Near-optimal accuracy is often achievable at a fraction of the resource cost.
 
 ---
 
-## ⚙️ How It Works
+## 🏗️ Configuration Space
 
+Each embedding pipeline is defined by a configuration tuple:
 
-The system outputs the "Pareto Frontier", the set of optimal configurations where no single metric can be improved without sacrificing another. This is visualized as an 3D scatter plot.
+```
+θ = (m, d, b, n, p, c, q, q_b, q_bits, q_g, q_m, q_E)
+```
+
+| Parameter | Description | Examples |
+|-----------|-------------|---------|
+| `m` | Embedding model | `all-mpnet-base-v2`, `all-MiniLM-L6-v2`, … |
+| `d` | Effective dimensionality | 64 – 768 |
+| `b` | Batch size | Variable |
+| `n` | L2 normalization | on / off |
+| `p` | PCA projection | on / off |
+| `c` | Downstream module | Logistic Regression, Linear SVM, k-Means, Agglomerative |
+| `q` | Quantization | 4-bit / 8-bit, symmetric / affine |
 
 ---
+
+## 🎯 Key Results
+
+### Semantic Similarity (STSb)
+
+The Pareto frontier reveals **three distinct operating regimes**:
+
+```
+  Low-Cost         Knee-Point        High-Performance
+  ─────────────    ──────────────    ──────────────────
+  P05: r=0.870     P10: r=0.878      P02: r=0.883
+  ~16s / ~2095 J   ~31s / ~4079 J    ~49s / ~6512 J
+```
+
+→ Moving from the knee point to the top performer **doubles latency and energy** for a marginal **+0.005 gain** in Pearson correlation.
+
+### Text Classification (AG News)
+
+| Config | Accuracy | Latency | Energy |
+|--------|----------|---------|--------|
+| P02 (budget) | 0.878 | 65 ms | 7.2 J |
+| P01 (balanced) | 0.888 | 218 ms | 28.8 J |
+| P04 (max perf.) | 0.894 | 18,168 ms | 2,397.6 J |
+
+→ P04 gains **+1.6 pp** accuracy over P02 but costs **280× more latency** and **333× more energy**.
+
+### Text Clustering (AG News — NMI)
+
+| Config | NMI | Latency | Energy |
+|--------|-----|---------|--------|
+| P01 | 0.459 | 33.2 s | 4,384.8 J |
+| P02 | 0.557 | 109.2 s | 14,414.4 J |
+
+---
+
+## 🚀 Quick Start
+
+```bash
+# Clone the repository
+git clone https://github.com/jorge-martinez-gil/efficient-edge-embeddings.git
+cd efficient-edge-embeddings
+
+# Install dependencies
+pip install -r requirements.txt
+```
+---
+
+## 📐 The Knee-Point Rule
+
+When stakeholder preferences are unavailable, we derive a **weight-free recommendation**:
+
+1. Min–max normalize latency and energy across all Pareto-optimal points.
+2. Compute combined cost: `C(θ) = 0.5 · L̃(θ) + 0.5 · Ẽ(θ)`
+3. Sort by increasing `C(θ)` and compute discrete gain: `G_i = (A(θ_{i+1}) − A(θ_i)) / (C(θ_{i+1}) − C(θ_i) + ε)`
+4. Select `θ_knee = argmax G_i` — the point with the largest performance jump per unit cost.
+
+This selects the transition between **efficient** and **diminishing-return** regimes without any subjective weighting.
+
+---
+
+## 🏛️ Design Implications
+
+- **Dominated configs → exclude them.** They cost more and perform no better.
+- **Normalization is (almost) free.** It stabilizes downstream behavior at negligible overhead.
+- **Dimensionality is a deployment knob**, not a fixed model property.
+- **Batch size shifts the latency–energy curve** depending on hardware utilization.
+- **Large encoders justify themselves only at the very top of the accuracy range.**
+
+---
+
+## 🙏 Acknowledgments
+
+Research supported via the **Efficient Edge Embeddings (E\*3)** project, subgrant 2dAI2OC07 under EU Horizon Europe grant 101120726 ([dAIEDGE](https://daiedge.eu)). Validated using the [vLab](https://vlab.daiedge.eu) environment. Special thanks to Giulio Gambardella for his contributions.
+
 
 ## 📜 License
 This project is licensed under the **MIT License**.
