@@ -73,6 +73,16 @@ def norm01(a: np.ndarray) -> np.ndarray:
     a = np.asarray(a, dtype=float)
     return (a - a.min()) / (a.max() - a.min() + 1e-12)
 
+def load_dataset_or_raise(*args, **kwargs):
+    try:
+        return load_dataset(*args, **kwargs)
+    except Exception:
+        raise RuntimeError(
+            "Failed to load dataset from Hugging Face. "
+            "Check internet/proxy access (for example HTTP(S)_PROXY settings) "
+            "or run in offline mode with a pre-populated HF cache."
+        ) from None
+
 
 # -----------------------------
 # Evaluator
@@ -87,7 +97,7 @@ class STSBenchmarkEvaluator:
     def __post_init__(self):
         os.makedirs(self.track_dir, exist_ok=True)
 
-        ds = load_dataset("glue", "stsb", split=self.split)
+        ds = load_dataset_or_raise("glue", "stsb", split=self.split)
         if self.max_pairs is not None:
             ds = ds.select(range(min(self.max_pairs, len(ds))))
 
