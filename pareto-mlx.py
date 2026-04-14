@@ -290,22 +290,52 @@ class STSBenchmarkEvaluator:
         # Warmup (not tracked)
         if self.warmup_pairs and self.warmup_pairs > 0:
             w = min(self.warmup_pairs, len(self.s1))
-            _ = model.encode(self.s1[:w], convert_to_numpy=True, batch_size=batch_size, normalize_embeddings=normalize)
-            _ = model.encode(self.s2[:w], convert_to_numpy=True, batch_size=batch_size, normalize_embeddings=normalize)
+            _ = model.encode(
+                self.s1[:w],
+                convert_to_numpy=True,
+                batch_size=batch_size,
+                normalize_embeddings=normalize,
+            )
+            _ = model.encode(
+                self.s2[:w],
+                convert_to_numpy=True,
+                batch_size=batch_size,
+                normalize_embeddings=normalize,
+            )
 
-        tracker = EmissionsTracker(
-            project_name="sts_moo_quant",
-            output_dir=self.track_dir,
-            measure_power_secs=1,
-            save_to_file=False,
-            log_level="error",
-        )
+        log_dir = os.path.abspath(self.track_dir)
+        os.makedirs(log_dir, exist_ok=True)
 
-        tracker.start()
+        tracker = None
+        energy_kwh = np.nan
+
+        try:
+            tracker = EmissionsTracker(
+                project_name="sts_moo_quant",
+                output_dir=log_dir,
+                measure_power_secs=1,
+                save_to_file=False,
+                log_level="error",
+            )
+            tracker.start()
+        except Exception as e:
+            print(f"[WARN] CodeCarbon disabled: {e}")
+            tracker = None
+
         t0 = time.perf_counter()
 
-        e1 = model.encode(self.s1, convert_to_numpy=True, batch_size=batch_size, normalize_embeddings=normalize)
-        e2 = model.encode(self.s2, convert_to_numpy=True, batch_size=batch_size, normalize_embeddings=normalize)
+        e1 = model.encode(
+            self.s1,
+            convert_to_numpy=True,
+            batch_size=batch_size,
+            normalize_embeddings=normalize,
+        )
+        e2 = model.encode(
+            self.s2,
+            convert_to_numpy=True,
+            batch_size=batch_size,
+            normalize_embeddings=normalize,
+        )
 
         if track_pca_energy:
             e1, e2 = self._maybe_pca(e1, e2, target_dim)
@@ -317,10 +347,17 @@ class STSBenchmarkEvaluator:
             e2 = quantize_then_dequantize(e2, quant_backend, quant_bits, quant_group, quant_mode)
 
         t1 = time.perf_counter()
-        tracker.stop()
+
+        if tracker is not None:
+            try:
+                tracker.stop()
+                fed = getattr(tracker, "final_emissions_data", None)
+                if fed is not None:
+                    energy_kwh = float(getattr(fed, "energy_consumed", np.nan))
+            except Exception:
+                energy_kwh = np.nan
 
         latency_ms = (t1 - t0) * 1000.0
-        energy_kwh = float(getattr(tracker.final_emissions_data, "energy_consumed", np.nan))
 
         # If PCA not tracked, do it outside tracked region
         if not track_pca_energy:
@@ -552,7 +589,12 @@ def main():
     else:
         print("MLX not detected: MLX backend will fall back to raw quantization.")
 
-    evaluator = STSBenchmarkEvaluator(split="validation", max_pairs=MAX_PAIRS, warmup_pairs=WARMUP_PAIRS, track_dir=CC_DIR)
+    evaluator = STSBenchmarkEvaluator(
+        split="validation",
+        max_pairs=MAX_PAIRS,
+        warmup_pairs=WARMUP_PAIRS,
+        track_dir=CC_DIR,
+    )
 
     model_candidates = [
         "sentence-transformers/all-MiniLM-L6-v2",

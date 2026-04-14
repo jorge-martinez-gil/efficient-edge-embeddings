@@ -1,4 +1,3 @@
-
 import io
 import os
 import sys
@@ -201,6 +200,12 @@ def run_module_main(mod_label: str, mod_path: Path, outdir: Path) -> RunResult:
     ok = False
     try:
         os.chdir(outdir)
+
+        # Ensure folders expected by hosted runs exist.
+        # This fixes codecarbon crashes like:
+        # OSError: Folder '.cc_logs' doesn't exist !
+        Path(".cc_logs").mkdir(parents=True, exist_ok=True)
+
         # Ensure module can import relative deps from app folder if needed
         sys.path.insert(0, str(BASE_DIR))
 
