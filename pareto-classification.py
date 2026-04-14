@@ -94,6 +94,16 @@ def subsample_lists(x_list: List[str], y_list: List[int], k: int, rng: np.random
     y = np.array([y_list[i] for i in idx], dtype=int)
     return x, y
 
+def load_dataset_or_raise(*args, **kwargs):
+    try:
+        return load_dataset(*args, **kwargs)
+    except Exception:
+        raise RuntimeError(
+            "Failed to load dataset from Hugging Face. "
+            "Check internet/proxy access (for example HTTP(S)_PROXY settings) "
+            "or run in offline mode with a pre-populated HF cache."
+        ) from None
+
 
 # -----------------------------
 # Dataset loading
@@ -102,14 +112,14 @@ def load_classification_task(task: str, max_train: int, max_eval: int, seed: int
     rng = np.random.default_rng(seed)
 
     if task == "sst2":
-        ds_train = load_dataset("glue", "sst2", split="train")
-        ds_eval = load_dataset("glue", "sst2", split="validation")
+        ds_train = load_dataset_or_raise("glue", "sst2", split="train")
+        ds_eval = load_dataset_or_raise("glue", "sst2", split="validation")
         x_train, y_train = ds_train["sentence"], ds_train["label"]
         x_eval, y_eval = ds_eval["sentence"], ds_eval["label"]
 
     elif task == "ag_news":
-        ds_train = load_dataset("ag_news", split="train")
-        ds_eval = load_dataset("ag_news", split="test")
+        ds_train = load_dataset_or_raise("ag_news", split="train")
+        ds_eval = load_dataset_or_raise("ag_news", split="test")
         x_train, y_train = ds_train["text"], ds_train["label"]
         x_eval, y_eval = ds_eval["text"], ds_eval["label"]
 
