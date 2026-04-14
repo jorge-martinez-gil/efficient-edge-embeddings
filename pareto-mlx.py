@@ -78,12 +78,18 @@ def norm01(a: np.ndarray) -> np.ndarray:
 def ensure_dim_divisible(e: np.ndarray, group_size: int) -> np.ndarray:
     if group_size <= 1:
         return e
+
     d = e.shape[1]
+
+    # If the requested group is larger than the embedding dimension,
+    # keep the tensor unchanged. The quantizer will clamp later.
+    if group_size > d:
+        return e
+
     d2 = (d // group_size) * group_size
-    if d2 <= 0:
+    if d2 <= 0 or d2 == d:
         return e
-    if d2 == d:
-        return e
+
     return e[:, :d2]
 
 
@@ -109,16 +115,29 @@ def raw_groupwise_quantize(x: np.ndarray, bits: int, group_size: int, mode: str)
     x = np.asarray(x, dtype=np.float32)
     assert bits in (4, 8)
     assert mode in ("symmetric", "affine")
-    if group_size <= 1:
-        # per-tensor grouping
-        group_size = x.shape[1]
 
     n, d = x.shape
+
+    # Clamp invalid or oversized groups to the current embedding dimension
+    if group_size <= 1 or group_size > d:
+        group_size = d
+
     if d % group_size != 0:
         x = ensure_dim_divisible(x, group_size)
         n, d = x.shape
 
+        # Re-check after trimming
+        if group_size > d:
+            group_size = d
+
     g = group_size
+
+    # Final guard against zero-group reshapes
+    if g <= 0 or d <= 0 or d // g <= 0:
+        raise ValueError(
+            f"Invalid quantization shape: x.shape={x.shape}, group_size={group_size}"
+        )
+
     xg = x.reshape(n, d // g, g)
 
     if mode == "symmetric":
@@ -154,7 +173,6 @@ def raw_dequantize(qpack) -> np.ndarray:
     scale = qpack["scale"]
     bias = qpack["bias"]
     n, d = qpack["shape"]
-    g = qpack["group_size"]
     mode = qpack["mode"]
 
     if mode == "symmetric":
@@ -172,11 +190,20 @@ def mlx_quantize(x: np.ndarray, bits: int, group_size: int):
     mx = try_import_mlx()
     if mx is None:
         return None
+
     x = np.asarray(x, dtype=np.float32)
-    if group_size <= 1:
-        group_size = x.shape[1]
+    d = x.shape[1]
+
+    if group_size <= 1 or group_size > d:
+        group_size = d
+
     if x.shape[1] % group_size != 0:
         x = ensure_dim_divisible(x, group_size)
+
+    d = x.shape[1]
+    if group_size > d:
+        group_size = d
+
     mx_x = mx.array(x)
     q = mx.quantized(mx_x, group_size=group_size, bits=bits)
     return {
@@ -621,7 +648,12 @@ def main():
         # If quantization is off, still store params for reporting consistency
         quant_backend = trial.suggest_categorical("quant_backend", quant_backends)
         qb = trial.suggest_categorical("quant_bits", quant_bits)
-        qg = trial.suggest_categorical("quant_group", quant_groups)
+
+        valid_quant_groups = [g for g in quant_groups if g <= target_dim]
+        if not valid_quant_groups:
+            valid_quant_groups = [target_dim]
+        qg = trial.suggest_categorical("quant_group", valid_quant_groups)
+
         qm = trial.suggest_categorical("quant_mode", quant_modes)
 
         # Track quant energy only matters if quantization is on
@@ -644,7 +676,7 @@ def main():
     print("Running 3-objective MOO on GLUE STS-B (validation split)")
     print("Objectives: minimize latency, minimize energy, maximize Pearson correlation")
     study = optuna.create_study(directions=["minimize", "minimize", "maximize"])
-    study.optimize(objective, n_trials=N_TRIALS)
+    study.optimize(objective, n_trials=N_TRIALS, catch=(Exception,))
 
     pareto = study.best_trials
     print(f"\nPareto-optimal solutions: {len(pareto)}")
@@ -667,7 +699,6 @@ def main():
         )
 
     export_pareto_csv(pareto, "pareto_solutions.csv")
-
     plot_pareto_interactive_html(pareto, out_html="pareto_3d_interactive.html")
 
     plot_paper_figures_matplotlib(
