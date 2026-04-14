@@ -12,6 +12,8 @@
   <img src="https://img.shields.io/badge/search-NSGA--II-purple?style=flat-square" alt="Algorithm" />
 </p>
 
+NEW: [Efficient Edge Embeddings Demo](https://efficient-edge-embeddings.streamlit.app/)
+
 ---
 
 ## 📖 Overview
