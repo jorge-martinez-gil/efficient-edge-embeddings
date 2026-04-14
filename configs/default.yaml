@@ -1,0 +1,10 @@
+models:
+  - all-MiniLM-L6-v2
+  - all-MiniLM-L12-v2
+  - all-mpnet-base-v2
+  - all-distilroberta-v1
+  - paraphrase-MiniLM-L6-v2
+  - paraphrase-mpnet-base-v2
+  - multi-qa-MiniLM-L6-cos-v1
+  - multi-qa-mpnet-base-dot-v1
+  - sentence-t5-base

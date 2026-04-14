@@ -1,0 +1,9 @@
+
+[project]
+name = "e3"
+version = "0.1.0"
+description = "Energy-Efficient Embedding Optimization"
+dependencies = ["numpy", "pandas", "scikit-learn"]
+
+[project.scripts]
+e3-run = "e3.cli:main"
