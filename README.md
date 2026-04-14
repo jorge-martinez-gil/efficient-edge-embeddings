@@ -34,15 +34,7 @@ Pareto dominance is used to separate viable configurations from those that are s
 
 ## 🏗️ Configuration Space
 
-Each embedding pipeline is described by a configuration tuple:
-
-```
-
-θ = (m, d, b, n, p, c, q, q_b, q_bits, q_g, q_m, q_E)
-
-```
-
-This representation captures model choice, dimensionality, batching, normalization, projection, downstream task, and quantization settings. The goal is to expose all relevant deployment levers instead of treating the embedding model as a fixed artifact.
+Each embedding pipeline is described by a configuration tuple. This representation captures model choice, dimensionality, batching, normalization, projection, downstream task, and quantization settings. The goal is to expose all relevant deployment levers instead of treating the embedding model as a fixed artifact.
 
 ---
 
