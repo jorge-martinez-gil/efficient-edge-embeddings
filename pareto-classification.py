@@ -1,27 +1,34 @@
 """
-Energy-aware multi-objective optimization of TEXT EMBEDDINGS for CLASSIFICATION accuracy.
+Energy-aware multi-objective optimization of text embedding configurations for classification.
 
-Benchmarks:
-- SST-2 (GLUE)  : binary sentiment classification (metric: accuracy)
-- AG News       : 4-class topic classification (metric: accuracy)
+Simultaneously minimizes inference latency (ms) and energy consumption (kWh, via CodeCarbon)
+while maximizing classification accuracy.  Embeddings are computed by a SentenceTransformer
+model, optionally reduced via PCA, and fed into a lightweight downstream classifier.
 
-Pipeline per trial:
-Text -> SentenceTransformer embeddings -> (optional PCA to target_dim) -> classifier -> accuracy
+Supported benchmarks (set the ``TASK`` constant):
+    - ``"sst2"``    -- GLUE SST-2 binary sentiment classification
+    - ``"ag_news"`` -- AG News 4-class topic classification
 
-Objectives (multi-objective Optuna):
-1) Latency (ms)  [minimize]
-2) Energy (kWh)  [minimize]  (CodeCarbon estimate)
-3) Accuracy      [maximize]
+Usage:
+    python pareto-classification.py
+
+Configuration constants (edit at the top of this file):
+    TASK            -- benchmark task (``"sst2"`` or ``"ag_news"``)
+    N_TRIALS        -- number of Optuna trials (use 200-400 for paper-quality results)
+    MAX_TRAIN       -- max training samples subsampled per trial
+    MAX_EVAL        -- max evaluation samples subsampled per trial
+    WARMUP_SAMPLES  -- warm-up samples not counted in measurements
+    RANDOM_SEED     -- seed for reproducible subsampling
 
 Outputs:
-- pareto_solutions.csv
-- pareto_3d_interactive.html (offline, no CDN, linear axes)
-- fig_pareto3d.pdf (vector PDF)
-- fig_proj_latency_accuracy.pdf
-- fig_proj_energy_accuracy.pdf
+    pareto_solutions.csv              -- Pareto-optimal configurations (CSV)
+    pareto_3d_interactive.html        -- Offline interactive 3-D Pareto plot
+    fig_pareto3d.pdf                  -- Vector PDF for LaTeX (3-D view)
+    fig_proj_latency_accuracy.pdf     -- 2-D projection: latency vs accuracy
+    fig_proj_energy_accuracy.pdf      -- 2-D projection: energy vs accuracy
 
 Install:
-  pip install optuna sentence-transformers datasets scikit-learn codecarbon plotly matplotlib
+    pip install optuna sentence-transformers datasets scikit-learn codecarbon plotly matplotlib
 """
 
 import os
@@ -72,6 +79,7 @@ PAPER_FIGSIZE_3D = (6.8, 4.8)
 # Helpers
 # -----------------------------
 def short_model(name: str) -> str:
+    """Return a shortened display name for a sentence-transformers model identifier."""
     return (
         name.replace("sentence-transformers/", "")
             .replace("all-", "")
@@ -80,11 +88,13 @@ def short_model(name: str) -> str:
 
 
 def norm01(a: np.ndarray) -> np.ndarray:
+    """Normalize array values to the [0, 1] range."""
     a = np.asarray(a, dtype=float)
     return (a - a.min()) / (a.max() - a.min() + 1e-12)
 
 
 def subsample_lists(x_list: List[str], y_list: List[int], k: int, rng: np.random.Generator):
+    """Randomly subsample up to *k* items from paired text and label lists."""
     n = len(x_list)
     if k is None or k >= n:
         return x_list, np.array(y_list, dtype=int)
@@ -137,6 +147,19 @@ def load_classification_task(task: str, max_train: int, max_eval: int, seed: int
 # -----------------------------
 @dataclass
 class EmbeddingClassificationEvaluator:
+    """Evaluator for text classification benchmarking with energy tracking.
+
+    Loads a classification dataset, encodes texts with a SentenceTransformer, optionally
+    applies PCA, trains a downstream classifier, and measures latency and energy per trial.
+
+    Attributes:
+        task: Benchmark task identifier (``"sst2"`` or ``"ag_news"``).
+        max_train: Maximum number of training samples to subsample per trial.
+        max_eval: Maximum number of evaluation samples to subsample per trial.
+        seed: Random seed for reproducible subsampling.
+        warmup_samples: Samples used for a warm-up pass (not measured).
+        cc_dir: Directory for CodeCarbon log files; created automatically if absent.
+    """
     task: str
     max_train: int
     max_eval: int
@@ -207,21 +230,26 @@ class EmbeddingClassificationEvaluator:
         classifier: str,
         track_pca_energy: bool,
     ) -> Tuple[float, float, float]:
-        """
+        """Evaluate a single embedding + classifier configuration.
+
+        Args:
+            model_name: HuggingFace model identifier (``sentence-transformers/...``).
+            target_dim: Target dimensionality after optional PCA reduction.
+            batch_size: Encoding batch size passed to ``SentenceTransformer.encode``.
+            normalize: Whether to L2-normalize embeddings after encoding.
+            classifier: Downstream classifier to use (``"logreg"`` or ``"linear_svm"``).
+            track_pca_energy: If ``True``, include PCA computation inside the
+                CodeCarbon measurement window.
+
         Returns:
-          latency_ms  (min)
-          energy_kwh  (min)
-          accuracy    (max)
+            A tuple ``(latency_ms, energy_kwh, accuracy)`` where:
+            - ``latency_ms``  -- wall-clock time for embedding + PCA + classifier in ms
+            - ``energy_kwh``  -- CodeCarbon energy estimate in kWh
+            - ``accuracy``    -- classification accuracy on the evaluation split
 
-        Measured region includes:
-          - embeddings (train+eval)
-          - optional PCA (if track_pca_energy=True)
-          - classifier training + prediction
-
-        Excludes:
-          - dataset loading
-          - model loading
-          - warmup
+        Note:
+            Dataset loading, model loading, and warm-up passes are excluded from
+            the measured region.
         """
         tracker = EmissionsTracker(
             project_name=f"emb_cls_{self.task}",

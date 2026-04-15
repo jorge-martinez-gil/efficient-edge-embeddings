@@ -1,19 +1,35 @@
 """
-STS-B 3-objective MOO (latency, energy, accuracy) with embedding quantization knobs
-(raw NumPy vs MLX quantization) + paper-ready plots.
+STS-B 3-objective multi-objective optimization with embedding quantization.
+
+Extends ``pareto-similarity.py`` by adding embedding quantization as an additional
+optimization knob.  Supports raw NumPy groupwise quantization (symmetric or affine)
+and Apple MLX quantization on Apple Silicon.  When ``mlx`` is not installed the
+framework automatically falls back to the NumPy quantizer.
+
+Simultaneously minimizes inference latency (ms) and energy consumption (kWh, via CodeCarbon)
+while maximizing Pearson correlation on the GLUE STS-B validation split.
+
+Usage:
+    python pareto-mlx.py
+
+Configuration constants (edit at the top of this file):
+    N_TRIALS      -- number of Optuna trials (use 200-400 for paper-quality results)
+    MAX_PAIRS     -- max sentence pairs evaluated per trial (None = full split)
+    WARMUP_PAIRS  -- warm-up pairs not counted in measurements
+    CC_DIR        -- CodeCarbon log directory (created automatically)
 
 Outputs:
-- pareto_solutions.csv
-- pareto_3d_interactive.html (offline, no CDN, linear axes)
-- fig_pareto3d.pdf           (vector PDF for LaTeX)
-- fig_proj_latency_accuracy.pdf
-- fig_proj_energy_accuracy.pdf
+    pareto_solutions.csv              -- Pareto-optimal configurations (CSV)
+    pareto_3d_interactive.html        -- Offline interactive 3-D Pareto plot
+    fig_pareto3d.pdf                  -- Vector PDF for LaTeX (3-D view)
+    fig_proj_latency_accuracy.pdf     -- 2-D projection: latency vs Pearson r
+    fig_proj_energy_accuracy.pdf      -- 2-D projection: energy vs Pearson r
 
 Install:
-  pip install optuna sentence-transformers datasets scikit-learn codecarbon plotly matplotlib numpy
+    pip install optuna sentence-transformers datasets scikit-learn codecarbon plotly matplotlib numpy
 
 Optional (Apple Silicon):
-  pip install mlx
+    pip install mlx
 """
 
 import os
@@ -54,6 +70,7 @@ PAPER_FIGSIZE_3D = (6.8, 4.8)     # inches
 # Helpers
 # -----------------------------
 def short_model(name: str) -> str:
+    """Return a shortened display name for a sentence-transformers model identifier."""
     return (
         name.replace("sentence-transformers/", "")
             .replace("all-", "")
@@ -62,6 +79,7 @@ def short_model(name: str) -> str:
 
 
 def pearsonr(x: np.ndarray, y: np.ndarray) -> float:
+    """Compute Pearson correlation coefficient between two 1-D arrays."""
     x = np.asarray(x, dtype=float)
     y = np.asarray(y, dtype=float)
     x = x - x.mean()
@@ -71,6 +89,7 @@ def pearsonr(x: np.ndarray, y: np.ndarray) -> float:
 
 
 def norm01(a: np.ndarray) -> np.ndarray:
+    """Normalize array values to the [0, 1] range."""
     a = np.asarray(a, dtype=float)
     return (a - a.min()) / (a.max() - a.min() + 1e-12)
 
@@ -107,6 +126,7 @@ def ensure_dim_divisible(e: np.ndarray, group_size: int) -> np.ndarray:
 # Quantization (raw + MLX)
 # -----------------------------
 def try_import_mlx():
+    """Attempt to import the ``mlx.core`` module; return it or ``None`` if unavailable."""
     try:
         import mlx.core as mx  # type: ignore
         return mx
@@ -115,12 +135,22 @@ def try_import_mlx():
 
 
 def raw_groupwise_quantize(x: np.ndarray, bits: int, group_size: int, mode: str):
-    """
-    Group-wise quantization for float32 embedding matrices.
-    mode:
-      - "symmetric": signed int range around 0, per-group scale
-      - "affine": per-group scale and bias, stored as uint
-    This baseline stores 4-bit values in uint8 (not bitpacked).
+    """Group-wise quantization for float32 embedding matrices.
+
+    Splits each row of ``x`` into groups of ``group_size`` elements and quantizes
+    each group independently using either a symmetric (signed int) or affine (unsigned int)
+    scheme.  Values are stored in int8/uint8 (not bitpacked) for simplicity.
+
+    Args:
+        x: 2-D float32 embedding matrix of shape ``(n_samples, embedding_dim)``.
+        bits: Quantization bit-width (4 or 8).
+        group_size: Number of elements per quantization group.
+        mode: Quantization scheme — ``"symmetric"`` or ``"affine"``.
+
+    Returns:
+        A dict with keys ``backend``, ``q``, ``scale``, ``bias``, ``shape``,
+        ``bits``, ``group_size``, and ``mode`` sufficient to reconstruct the
+        approximated float32 matrix via :func:`raw_dequantize`.
     """
     x = np.asarray(x, dtype=np.float32)
     assert bits in (4, 8)
@@ -179,6 +209,7 @@ def raw_groupwise_quantize(x: np.ndarray, bits: int, group_size: int, mode: str)
 
 
 def raw_dequantize(qpack) -> np.ndarray:
+    """Reconstruct a float32 embedding matrix from a raw quantization pack."""
     q = qpack["q"]
     scale = qpack["scale"]
     bias = qpack["bias"]
@@ -193,9 +224,17 @@ def raw_dequantize(qpack) -> np.ndarray:
 
 
 def mlx_quantize(x: np.ndarray, bits: int, group_size: int):
-    """
-    MLX quantize wrapper. It uses mx.quantized and mx.dequantize.
-    If MLX is not available, returns None.
+    """Quantize a float32 embedding matrix using Apple MLX.
+
+    Falls back to ``None`` if the ``mlx`` package is not available.
+
+    Args:
+        x: 2-D float32 embedding matrix.
+        bits: Quantization bit-width passed to ``mx.quantized``.
+        group_size: Group size passed to ``mx.quantized``.
+
+    Returns:
+        A dict with MLX quantization data, or ``None`` if MLX is unavailable.
     """
     mx = try_import_mlx()
     if mx is None:
@@ -226,6 +265,7 @@ def mlx_quantize(x: np.ndarray, bits: int, group_size: int):
 
 
 def mlx_dequantize(qpack) -> Optional[np.ndarray]:
+    """Reconstruct a float32 embedding matrix from an MLX quantization pack."""
     mx = try_import_mlx()
     if mx is None:
         return None
@@ -261,6 +301,17 @@ def quantize_then_dequantize(
 # -----------------------------
 @dataclass
 class STSBenchmarkEvaluator:
+    """Evaluator for GLUE STS-B benchmarking with quantization and energy tracking.
+
+    Extends the base STS-B evaluator with groupwise embedding quantization
+    (raw NumPy or Apple MLX) as an additional search parameter.
+
+    Attributes:
+        split: HuggingFace dataset split to use (e.g. ``"validation"``).
+        max_pairs: Maximum number of sentence pairs to evaluate. ``None`` uses the full split.
+        warmup_pairs: Number of sentence pairs used for a warm-up pass (not measured).
+        track_dir: Directory for CodeCarbon log files; created automatically if absent.
+    """
     split: str = "validation"
     max_pairs: int = 1500
     warmup_pairs: int = 128
@@ -311,16 +362,31 @@ class STSBenchmarkEvaluator:
         quantize_embeddings: bool,
         track_quant_energy: bool,
     ) -> Tuple[float, float, float]:
-        """
-        Returns: latency_ms, energy_kwh, pearson_r
+        """Evaluate a single embedding + quantization configuration on STS-B.
 
-        Measured region:
-          embedding inference
-          + optional PCA (if track_pca_energy=True)
-          + optional quantize+dequant (if quantize_embeddings=True and track_quant_energy=True)
+        Args:
+            model_name: HuggingFace model identifier (``sentence-transformers/...``).
+            target_dim: Target dimensionality after optional PCA reduction.
+            batch_size: Encoding batch size passed to ``SentenceTransformer.encode``.
+            normalize: Whether to L2-normalize embeddings after encoding.
+            track_pca_energy: If ``True``, include PCA inside the energy measurement window.
+            quant_backend: Quantization backend to use (``"raw"`` or ``"mlx"``).
+            quant_bits: Bit-width for quantization (4 or 8).
+            quant_group: Group size for groupwise quantization.
+            quant_mode: Quantization scheme (``"symmetric"`` or ``"affine"``).
+            quantize_embeddings: Whether to apply quantize-then-dequantize to embeddings.
+            track_quant_energy: If ``True``, include quantization inside the energy window.
 
-        Excludes:
-          model loading, dataset loading, warm-up, metric computation
+        Returns:
+            A tuple ``(latency_ms, energy_kwh, pearson_r)`` where:
+            - ``latency_ms``  -- wall-clock time for the measured region in ms
+            - ``energy_kwh``  -- CodeCarbon energy estimate in kWh
+            - ``pearson_r``   -- Pearson correlation with gold STS-B scores
+
+        Note:
+            Model loading, dataset loading, and warm-up passes are excluded from
+            the measured region.  The MLX backend falls back to raw NumPy quantization
+            automatically if ``mlx`` is not installed.
         """
         model = self._get_model(model_name)
 

@@ -1,15 +1,29 @@
 """
-Text Clustering 3-objective MOO (latency, energy, clustering quality) + paper-ready plots.
+Text clustering 3-objective multi-objective optimization (MOO) with energy tracking.
+
+Simultaneously minimizes inference latency (ms) and energy consumption (kWh, via CodeCarbon)
+while maximizing clustering quality (Normalized Mutual Information, NMI) on AG News.
+MiniBatchKMeans is used as the clustering algorithm.
+
+Usage:
+    python pareto-clustering.py
+
+Configuration constants (edit at the top of this file):
+    N_TRIALS        -- number of Optuna trials (use 200-400 for paper-quality results)
+    MAX_SAMPLES     -- max samples evaluated per trial (None = full split)
+    WARMUP_SAMPLES  -- warm-up samples not counted in measurements
+    DATASET_NAME    -- HuggingFace dataset name (default: ``"ag_news"``)
+    DATASET_SPLIT   -- dataset split to use (``"train"`` or ``"test"``)
 
 Outputs:
-- pareto_solutions.csv
-- pareto_3d_interactive.html (offline, no CDN, linear axes)
-- fig_pareto3d.pdf           (vector PDF for LaTeX)
-- fig_proj_latency_quality.pdf
-- fig_proj_energy_quality.pdf
+    pareto_solutions.csv              -- Pareto-optimal configurations (CSV)
+    pareto_3d_interactive.html        -- Offline interactive 3-D Pareto plot
+    fig_pareto3d.pdf                  -- Vector PDF for LaTeX (3-D view)
+    fig_proj_latency_quality.pdf      -- 2-D projection: latency vs NMI
+    fig_proj_energy_quality.pdf       -- 2-D projection: energy vs NMI
 
 Install:
-  pip install optuna sentence-transformers datasets scikit-learn codecarbon plotly matplotlib
+    pip install optuna sentence-transformers datasets scikit-learn codecarbon plotly matplotlib
 """
 
 import os
@@ -57,6 +71,7 @@ PAPER_FIGSIZE_3D = (6.8, 4.8)     # inches
 # Helpers
 # -----------------------------
 def short_model(name: str) -> str:
+    """Return a shortened display name for a sentence-transformers model identifier."""
     return (
         name.replace("sentence-transformers/", "")
             .replace("all-", "")
@@ -65,6 +80,7 @@ def short_model(name: str) -> str:
 
 
 def norm01(a: np.ndarray) -> np.ndarray:
+    """Normalize array values to the [0, 1] range."""
     a = np.asarray(a, dtype=float)
     return (a - a.min()) / (a.max() - a.min() + 1e-12)
 
@@ -84,6 +100,21 @@ def load_dataset_or_raise(*args, **kwargs):
 # -----------------------------
 @dataclass
 class ClusteringBenchmarkEvaluator:
+    """Evaluator for text clustering benchmarking with CodeCarbon energy tracking.
+
+    Loads a HuggingFace dataset, encodes texts with a SentenceTransformer, optionally
+    applies PCA, clusters with MiniBatchKMeans, and measures latency and energy per trial.
+
+    Attributes:
+        dataset_name: HuggingFace dataset identifier (default: ``"ag_news"``).
+        dataset_config: Optional dataset configuration name (``None`` for datasets without configs).
+        split: Dataset split to use (``"train"`` or ``"test"``).
+        text_field: Name of the text column in the dataset.
+        label_field: Name of the ground-truth label column used for NMI evaluation.
+        max_samples: Maximum number of samples to use. ``None`` uses the full split.
+        warmup_samples: Samples used for a warm-up pass (not measured).
+        track_dir: Directory for CodeCarbon log files; created automatically if absent.
+    """
     dataset_name: str = "ag_news"
     dataset_config: Optional[str] = None
     split: str = "test"
@@ -136,10 +167,26 @@ class ClusteringBenchmarkEvaluator:
         track_pca_energy: bool,
         kmeans_batch: int,
     ) -> Tuple[float, float, float]:
-        """
-        Returns: latency_ms, energy_kwh, quality_nmi
-        Measured region: embedding inference (+ optional PCA if track_pca_energy=True)
-        Excludes: model loading, dataset loading, warm-up, clustering + metric computation
+        """Evaluate a single embedding + clustering configuration.
+
+        Args:
+            model_name: HuggingFace model identifier (``sentence-transformers/...``).
+            target_dim: Target dimensionality after optional PCA reduction.
+            batch_size: Encoding batch size passed to ``SentenceTransformer.encode``.
+            normalize: Whether to L2-normalize embeddings after encoding.
+            track_pca_energy: If ``True``, include PCA computation inside the
+                CodeCarbon measurement window.
+            kmeans_batch: Batch size for MiniBatchKMeans.
+
+        Returns:
+            A tuple ``(latency_ms, energy_kwh, quality_nmi)`` where:
+            - ``latency_ms``   -- wall-clock time for embedding (and optional PCA) in ms
+            - ``energy_kwh``   -- CodeCarbon energy estimate in kWh
+            - ``quality_nmi``  -- Normalized Mutual Information vs ground-truth labels
+
+        Note:
+            Model loading, dataset loading, warm-up passes, and clustering/metric
+            computation are excluded from the measured region.
         """
         model = self._get_model(model_name)
 

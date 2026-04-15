@@ -1,3 +1,29 @@
+"""
+Pareto Lab — Streamlit dashboard for E*3 multi-objective optimization experiments.
+
+Provides a unified web UI for running all E*3 optimization modules
+(semantic similarity, classification, clustering, quantization), managing
+timestamped run folders, and viewing or downloading result artifacts.
+
+Usage:
+    streamlit run master_streamlit_app.py
+
+The hosted version is available at:
+    https://efficient-edge-embeddings.streamlit.app/
+
+Each module is executed by calling its ``main()`` function in a subprocess-like
+isolated working directory under ``runs/<run-label>/``.  Stdout and stderr are
+captured and displayed inline.  Artifacts (CSV, interactive HTML, PDFs) are
+rendered directly in the browser or offered as download buttons.
+
+Install:
+    pip install streamlit optuna sentence-transformers datasets scikit-learn
+                codecarbon plotly matplotlib pandas
+
+Optional (Apple Silicon quantization):
+    pip install mlx
+"""
+
 import io
 import os
 import sys
@@ -151,21 +177,25 @@ DEFAULT_OUTDIR = BASE_DIR / "runs"
 # Utilities
 # -----------------------------
 def _safe_read_bytes(p: Path) -> Optional[bytes]:
+    """Read a file as bytes, returning ``None`` on any error."""
     try:
         return p.read_bytes()
     except Exception:
         return None
 
 def _safe_read_text(p: Path) -> Optional[str]:
+    """Read a file as UTF-8 text, returning ``None`` on any error."""
     try:
         return p.read_text(encoding="utf-8", errors="replace")
     except Exception:
         return None
 
 def _slug(s: str) -> str:
+    """Convert a string to a URL/filename-safe slug."""
     return "".join(c.lower() if c.isalnum() else "-" for c in s).strip("-")
 
 def _now_tag() -> str:
+    """Return the current date-time as a compact ``YYYYMMDD-HHMMSS`` string."""
     return time.strftime("%Y%m%d-%H%M%S")
 
 def load_module_from_path(name: str, path: Path):
@@ -181,6 +211,14 @@ def load_module_from_path(name: str, path: Path):
 
 @dataclass
 class RunResult:
+    """Result of a single module execution.
+
+    Attributes:
+        ok: ``True`` if ``main()`` completed without raising an exception.
+        stdout: Captured standard output from the run.
+        stderr: Captured standard error (including traceback on failure).
+        outdir: Path to the run's output directory.
+    """
     ok: bool
     stdout: str
     stderr: str

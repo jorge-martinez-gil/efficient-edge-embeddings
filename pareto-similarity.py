@@ -1,15 +1,29 @@
 """
-STS-B 3-objective MOO (latency, energy, accuracy) + paper-ready plots.
+STS-B 3-objective multi-objective optimization (MOO) of sentence embedding configurations.
+
+Simultaneously minimizes inference latency (ms) and energy consumption (kWh, via CodeCarbon)
+while maximizing Pearson correlation on the GLUE STS-B validation split.  Optuna's NSGA-II
+sampler is used to approximate the Pareto front.  A knee-point heuristic then selects a
+single recommended configuration when no external preference is specified.
+
+Usage:
+    python pareto-similarity.py
+
+Configuration constants (edit at the top of this file):
+    N_TRIALS      -- number of Optuna trials (use 200-400 for paper-quality results)
+    MAX_PAIRS     -- max sentence pairs evaluated per trial (None = full split)
+    WARMUP_PAIRS  -- warm-up pairs not counted in measurements
+    CC_DIR        -- CodeCarbon log directory (created automatically)
 
 Outputs:
-- pareto_solutions.csv
-- pareto_3d_interactive.html (offline, no CDN, linear axes)
-- fig_pareto3d.pdf           (vector PDF for LaTeX)
-- fig_proj_latency_accuracy.pdf
-- fig_proj_energy_accuracy.pdf
+    pareto_solutions.csv              -- Pareto-optimal configurations (CSV)
+    pareto_3d_interactive.html        -- Offline interactive 3-D Pareto plot
+    fig_pareto3d.pdf                  -- Vector PDF for LaTeX (3-D view)
+    fig_proj_latency_accuracy.pdf     -- 2-D projection: latency vs Pearson r
+    fig_proj_energy_accuracy.pdf      -- 2-D projection: energy vs Pearson r
 
 Install:
-  pip install optuna sentence-transformers datasets scikit-learn codecarbon plotly matplotlib
+    pip install optuna sentence-transformers datasets scikit-learn codecarbon plotly matplotlib
 """
 
 import os
@@ -50,6 +64,7 @@ PAPER_FIGSIZE_3D = (6.8, 4.8)     # inches
 # Helpers
 # -----------------------------
 def short_model(name: str) -> str:
+    """Return a shortened display name for a sentence-transformers model identifier."""
     return (
         name.replace("sentence-transformers/", "")
             .replace("all-", "")
@@ -58,6 +73,7 @@ def short_model(name: str) -> str:
 
 
 def pearsonr(x: np.ndarray, y: np.ndarray) -> float:
+    """Compute Pearson correlation coefficient between two 1-D arrays."""
     x = np.asarray(x, dtype=float)
     y = np.asarray(y, dtype=float)
     x = x - x.mean()
@@ -67,6 +83,7 @@ def pearsonr(x: np.ndarray, y: np.ndarray) -> float:
 
 
 def norm01(a: np.ndarray) -> np.ndarray:
+    """Normalize array values to the [0, 1] range."""
     a = np.asarray(a, dtype=float)
     return (a - a.min()) / (a.max() - a.min() + 1e-12)
 
@@ -86,6 +103,19 @@ def load_dataset_or_raise(*args, **kwargs):
 # -----------------------------
 @dataclass
 class STSBenchmarkEvaluator:
+    """Evaluator for GLUE STS-B semantic similarity benchmarking.
+
+    Loads the STS-B validation (or test) split from HuggingFace and evaluates
+    embedding configurations by computing Pearson correlation between predicted
+    cosine similarities and gold-standard human scores.  Inference latency and
+    energy consumption are tracked per trial using CodeCarbon.
+
+    Attributes:
+        split: HuggingFace dataset split to use (e.g. ``"validation"``).
+        max_pairs: Maximum number of sentence pairs to evaluate. ``None`` uses the full split.
+        warmup_pairs: Number of sentence pairs used for a warm-up pass (not measured).
+        track_dir: Directory for CodeCarbon log files; created automatically if absent.
+    """
     split: str = "validation"
     max_pairs: int = 1500
     warmup_pairs: int = 128
@@ -130,10 +160,29 @@ class STSBenchmarkEvaluator:
         normalize: bool,
         track_pca_energy: bool,
     ) -> Tuple[float, float, float]:
-        """
-        Returns: latency_ms, energy_kwh, pearson_r
-        Measured region: embedding inference (+ optional PCA if track_pca_energy=True)
-        Excludes: model loading, dataset loading, warm-up, metric computation
+        """Evaluate a single embedding configuration on STS-B.
+
+        Runs inference on all sentence pairs, optionally applies PCA, and
+        computes Pearson correlation against gold scores.  Latency and energy
+        are measured only during the tracked region (see below).
+
+        Args:
+            model_name: HuggingFace model identifier (``sentence-transformers/...``).
+            target_dim: Target dimensionality after optional PCA reduction.
+            batch_size: Encoding batch size passed to ``SentenceTransformer.encode``.
+            normalize: Whether to L2-normalize embeddings after encoding.
+            track_pca_energy: If ``True``, include PCA computation inside the
+                CodeCarbon measurement window.
+
+        Returns:
+            A tuple ``(latency_ms, energy_kwh, pearson_r)`` where:
+            - ``latency_ms``  -- wall-clock time for embedding (and optional PCA) in ms
+            - ``energy_kwh``  -- CodeCarbon energy estimate in kWh
+            - ``pearson_r``   -- Pearson correlation with gold STS-B scores
+
+        Note:
+            Warm-up passes, model loading, dataset loading, and metric computation
+            are excluded from the measured region.
         """
         model = self._get_model(model_name)
 
@@ -185,6 +234,7 @@ class STSBenchmarkEvaluator:
 # Export + plotting
 # -----------------------------
 def export_pareto_csv(pareto_trials: List[optuna.trial.FrozenTrial], path_csv: str = "pareto_solutions.csv"):
+    """Write Pareto-optimal trial configurations and objective values to a CSV file."""
     header = [
         "point_id",
         "latency_ms",
