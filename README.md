@@ -8,7 +8,6 @@
 <p align="center">
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License" />
   <img src="https://img.shields.io/badge/python-3.8%2B-blue?style=flat-square" alt="Python Version" />
-  <img src="https://img.shields.io/badge/hardware-Edge%20%7C%20CPU%20%7C%20GPU-orange?style=flat-square" alt="Hardware Support" />
   <img src="https://img.shields.io/badge/search-NSGA--II-purple?style=flat-square" alt="Algorithm" />
 </p>
 
@@ -467,21 +466,6 @@ The project supports key elements of Trustworthy AI, including human oversight, 
 
 </details>
 
----
-
-## 📎 Citation
-
-If you use E\*3 in your research, please cite:
-
-```bibtex
-@software{e3_efficient_edge_embeddings,
-  author       = {Martinez-Gil, Jorge},
-  title        = {{E*3: Energy-Efficient Embedding Optimization}},
-  year         = {2025},
-  url          = {https://github.com/jorge-martinez-gil/efficient-edge-embeddings},
-  note         = {Subgrant 2dAI2OC07, EU Horizon Europe grant 101120726 (dAIEDGE)}
-}
-```
 
 ---
 
