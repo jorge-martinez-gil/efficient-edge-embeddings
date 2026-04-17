@@ -1,0 +1,4 @@
+point_id,latency_ms,energy_kwh,accuracy_pearson,model_name,target_dim,batch_size,normalize,track_pca_energy,quantize_embeddings,quant_backend,quant_bits,quant_group,quant_mode,track_quant_energy
+P01,19323.311000,0.000708373,0.845173,"sentence-transformers/paraphrase-MiniLM-L6-v2",64,64,False,False,True,raw,8,32,affine,False
+P02,18611.140400,0.000682298,0.844431,"sentence-transformers/paraphrase-MiniLM-L6-v2",96,8,True,False,True,mlx,4,64,symmetric,False
+P03,55484.586900,0.002033885,0.853163,"sentence-transformers/all-distilroberta-v1",96,16,True,True,False,raw,8,32,symmetric,False

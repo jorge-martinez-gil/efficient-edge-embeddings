@@ -1,0 +1,3 @@
+point_id,latency_ms,energy_kwh,quality_nmi,model_name,target_dim,batch_size,normalize,track_pca_energy,kmeans_batch,dataset_name,split,max_samples
+P01,66560.390300,0.002439857,0.440373,"sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",736,64,False,True,256,"ag_news","test",2000
+P02,215524.746300,0.007900667,0.486744,"sentence-transformers/multi-qa-mpnet-base-dot-v1",128,32,False,False,512,"ag_news","test",2000
