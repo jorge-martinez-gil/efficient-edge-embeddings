@@ -2,7 +2,7 @@
 ### Optimizing Embedding Models for Edge-Class Hardware
 
 <p align="center">
-  <img src="logo.png" alt="E*3 Logo" width="250" style="border-radius: 10px;"/>
+  <img src="logo.png" alt="E*3 Logo" width="350" style="border-radius: 10px;"/>
 </p>
 
 <p align="center">
