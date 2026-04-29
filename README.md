@@ -463,6 +463,16 @@ Responsible use extends beyond initial selection. Models should be evaluated bef
 
 The project supports key elements of Trustworthy AI, including human oversight, technical reliability, transparency, and attention to environmental impact.
 
+### Ethics-by-Design Checklist
+
+| Item              | Explanation                                            | Check mark |
+| ----------------- | ------------------------------------------------------ | ---------- |
+| Data quality      | Data is complete, valid, and free from major errors.   | ✓          |
+| Fairness          | Outputs were checked for bias or uneven performance.   | ✓          |
+| Transparency      | Data sources, limits, and expected use are documented. | ✓          |
+| Release readiness | Checklist reviewed before release.                     | ✓          |
+
+
 </details>
 
 
