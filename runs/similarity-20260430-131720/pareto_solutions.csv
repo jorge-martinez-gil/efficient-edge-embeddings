@@ -1,0 +1,10 @@
+point_id,latency_ms,energy_kwh,accuracy_pearson,model_name,target_dim,batch_size,normalize,track_pca_energy
+P01,39120.725000,0.001434024,0.877645,"sentence-transformers/all-MiniLM-L12-v2",288,8,True,False
+P02,73932.300400,0.002710115,0.882572,"sentence-transformers/all-distilroberta-v1",512,16,True,False
+P03,15802.900300,0.000579236,0.824646,"sentence-transformers/multi-qa-MiniLM-L6-cos-v1",288,16,True,False
+P04,16412.395400,0.000601710,0.857175,"sentence-transformers/all-MiniLM-L6-v2",128,16,False,False
+P05,16595.340300,0.000608410,0.869475,"sentence-transformers/paraphrase-MiniLM-L6-v2",480,64,True,True
+P06,107028.142600,0.003923353,0.888016,"sentence-transformers/paraphrase-mpnet-base-v2",576,16,True,True
+P07,55537.252500,0.002035759,0.882572,"sentence-transformers/all-distilroberta-v1",512,8,False,True
+P08,30905.981200,0.001132997,0.876909,"sentence-transformers/all-MiniLM-L12-v2",608,32,False,True
+P09,16710.034200,0.000612595,0.869847,"sentence-transformers/all-MiniLM-L6-v2",320,16,True,True

@@ -1,0 +1,4 @@
+point_id,task,latency_ms,energy_kwh,accuracy,model_name,target_dim,batch_size,normalize,classifier,track_pca_energy
+P01,ag_news,74.660200,0.000002797,0.882000,"sentence-transformers/paraphrase-mpnet-base-v2",448,8,True,logreg,False
+P02,ag_news,355.826400,0.000013125,0.884000,"sentence-transformers/paraphrase-mpnet-base-v2",544,8,True,logreg,True
+P03,ag_news,168606.693500,0.006180697,0.888000,"sentence-transformers/paraphrase-mpnet-base-v2",384,8,False,logreg,True
