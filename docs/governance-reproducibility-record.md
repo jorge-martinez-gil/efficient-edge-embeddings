@@ -60,7 +60,35 @@ For publication-quality fronts, increase the relevant `N_TRIALS` constant to 200
 
 ## 4. Metric Report
 
-Each relevant configuration is evaluated on task quality, latency, energy consumption, and Pareto-front membership. The checked-in run artifacts currently include Pareto-front CSVs for MLX quantization and clustering.
+Each relevant configuration is evaluated on task quality, latency, energy consumption, and Pareto-front membership. The repository run artifacts currently include Pareto-front CSVs for semantic similarity, classification, MLX quantization, and clustering.
+
+### Semantic Similarity Run
+
+Source: `runs/similarity-20260430-131720/pareto_solutions.csv`
+
+| Pareto member | Model | Batch | Normalize | PCA dim | PCA energy tracked | Latency ms | Energy kWh | Quality |
+|---|---|---:|---|---:|---|---:|---:|---:|
+| Yes (`P01`) | `sentence-transformers/all-MiniLM-L12-v2` | 8 | True | 288 | False | 39120.7250 | 0.001434024 | Pearson `0.877645` |
+| Yes (`P02`) | `sentence-transformers/all-distilroberta-v1` | 16 | True | 512 | False | 73932.3004 | 0.002710115 | Pearson `0.882572` |
+| Yes (`P03`) | `sentence-transformers/multi-qa-MiniLM-L6-cos-v1` | 16 | True | 288 | False | 15802.9003 | 0.000579236 | Pearson `0.824646` |
+| Yes (`P04`) | `sentence-transformers/all-MiniLM-L6-v2` | 16 | False | 128 | False | 16412.3954 | 0.000601710 | Pearson `0.857175` |
+| Yes (`P05`) | `sentence-transformers/paraphrase-MiniLM-L6-v2` | 64 | True | 480 | True | 16595.3403 | 0.000608410 | Pearson `0.869475` |
+| Yes (`P06`) | `sentence-transformers/paraphrase-mpnet-base-v2` | 16 | True | 576 | True | 107028.1426 | 0.003923353 | Pearson `0.888016` |
+| Yes (`P07`) | `sentence-transformers/all-distilroberta-v1` | 8 | False | 512 | True | 55537.2525 | 0.002035759 | Pearson `0.882572` |
+| Yes (`P08`) | `sentence-transformers/all-MiniLM-L12-v2` | 32 | False | 608 | True | 30905.9812 | 0.001132997 | Pearson `0.876909` |
+| Yes (`P09`) | `sentence-transformers/all-MiniLM-L6-v2` | 16 | True | 320 | True | 16710.0342 | 0.000612595 | Pearson `0.869847` |
+
+The archived package `runs/similarity-20260430-131720.zip` is also present and should be retained with the run folder when preparing an audit package.
+
+### Classification Run
+
+Source: `runs/classification-20260430-140439/pareto_solutions.csv`
+
+| Pareto member | Task | Model | Classifier | Batch | Normalize | PCA dim | PCA energy tracked | Latency ms | Energy kWh | Quality |
+|---|---|---|---|---:|---|---:|---|---:|---:|---:|
+| Yes (`P01`) | AG News | `sentence-transformers/paraphrase-mpnet-base-v2` | Logistic Regression | 8 | True | 448 | False | 74.6602 | 0.000002797 | Accuracy `0.882000` |
+| Yes (`P02`) | AG News | `sentence-transformers/paraphrase-mpnet-base-v2` | Logistic Regression | 8 | True | 544 | True | 355.8264 | 0.000013125 | Accuracy `0.884000` |
+| Yes (`P03`) | AG News | `sentence-transformers/paraphrase-mpnet-base-v2` | Logistic Regression | 8 | False | 384 | True | 168606.6935 | 0.006180697 | Accuracy `0.888000` |
 
 ### MLX Quantization Run
 
@@ -83,7 +111,7 @@ Source: `runs/clustering-20260415-125846/pareto_solutions.csv`
 
 ### Missing Reports To Generate For Complete Coverage
 
-The repository does not currently contain checked-in Pareto CSVs for semantic similarity without quantization, real-time mode, or classification. Generate and archive those reports before using this record as a complete audit package.
+The repository does not currently contain a checked-in Pareto CSV for real-time mode (`pareto-real-time.py`). Generate and archive that report before using this record as a complete audit package for every implemented benchmark mode.
 
 ## 5. Reproducibility Package
 
@@ -96,7 +124,7 @@ Each reproducibility package should contain:
 | Hardware details | Not checked into the repository | Record CPU model, GPU/NPU if any, memory, OS, Python version, power mode, and whether Apple MLX was available |
 | Commands | Script commands listed above | Save exact command line, working directory, environment variables, and any offline cache settings |
 | Seeds | Classification seed is `0`; Optuna and several other paths are not fully seeded | Record script seed constants and any added sampler seeds |
-| Exported artifacts | `pareto_solutions.csv`, `pareto_3d_interactive.html`, `fig_pareto3d.pdf`, projection PDFs, CodeCarbon logs | Archive the complete timestamped run folder and `.cc_logs` files |
+| Exported artifacts | `pareto_solutions.csv`, `pareto_3d_interactive.html`, `fig_pareto3d.pdf`, projection PDFs, CodeCarbon logs; current run folders include `runs/similarity-20260430-131720`, `runs/classification-20260430-140439`, `runs/mlx-20260414-150749`, and `runs/clustering-20260415-125846` | Archive the complete timestamped run folder and `.cc_logs` files |
 | Model and dataset revisions | Not pinned in scripts | Record Hugging Face model SHAs and dataset revision/cache fingerprints |
 
 Suggested capture commands:
