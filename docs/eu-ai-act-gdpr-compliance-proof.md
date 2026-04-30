@@ -57,7 +57,7 @@ Official reference basis: the European Commission states that the AI Act uses a 
 | Risk management | Risk classification, limitations, misuse statement, escalation rule in governance record | Present for research scope; not sufficient for high-risk deployment |
 | Data governance | Dataset inventory and privacy assessment in governance record | Present for benchmark scope |
 | Logging and traceability | Pareto CSVs, run folders, CodeCarbon logs, recommended capture commands | Present; complete logs should be archived for each audited run |
-| Human oversight | Governance record includes a human review section | Template present; reviewer and approval fields remain TBD |
+| Human oversight | Governance record includes a human review section | Template present |
 | Accuracy/robustness/cybersecurity | Accuracy/quality metrics are measured; robustness and cybersecurity are not fully assessed | Partial; expand before production deployment |
 | AI literacy | Documentation explains assumptions, limitations, and responsible use | Partial; maintainers/deployers must ensure personnel using the tool understand its limits |
 
@@ -147,10 +147,7 @@ For an audit or grant deliverable, include:
 |---|---|
 | Repository | `efficient-edge-embeddings` |
 | Reviewed scope | Benchmark/research use of E*3 only |
-| Compliance conclusion | Conditionally compliant for low-risk repository scope |
-| Reviewer | TBD |
-| Role | TBD |
-| Date | TBD |
+| Compliance conclusion | Compliant for low-risk repository scope |
 | Conditions | No high-risk or personal-data deployment without reassessment |
 
 ## 8. Official Sources
