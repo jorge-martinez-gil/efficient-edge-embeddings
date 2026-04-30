@@ -166,11 +166,11 @@ When external validation is required, record:
 
 | Field | Record |
 |---|---|
-| Reviewer name or role | TBD |
-| Approval date | TBD |
-| Selected configuration | TBD |
-| Reason for selection | TBD; should reference quality, latency, energy, Pareto membership, hardware target, and task requirements |
-| Conditions or safeguards | TBD |
+| Reviewer name or role | Jorge Martinez-Gil |
+| Approval date | 30.04.2026 |
+| Selected configuration | Default |
+| Reason for selection | The one reported in official publications |
+| Conditions or safeguards | n/a |
 
 No configuration should be presented as finally approved until this section is completed.
 
