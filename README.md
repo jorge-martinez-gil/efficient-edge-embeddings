@@ -480,6 +480,28 @@ The project supports key elements of Trustworthy AI, including human oversight, 
 
 ---
 
+## 📚 Citation
+
+If you use E\*3 in your research, please cite:
+
+```bibtex
+@inproceedings{martinezgil2026pareto,
+  author    = {Martinez-Gil, Jorge},
+  title     = {Pareto-Optimal Selection of Text Embeddings for Edge AI},
+  booktitle = {The 24th Annual International Conference on Mobile Systems, Applications and Services (MobiSys Workshop '26)},
+  year      = {2026},
+  pages     = {1--6},
+  publisher = {ACM},
+  address   = {New York, NY, USA},
+  location  = {Cambridge, United Kingdom},
+  isbn      = {979-8-4007-2712-2},
+  doi       = {10.1145/3812836.3814789},
+  url       = {https://doi.org/10.1145/3812836.3814789}
+}
+```
+
+---
+
 ## 🙏 Acknowledgments
 
 Research supported via the **Efficient Edge Embeddings (E\*3)** project, subgrant 2dAI2OC07 under EU Horizon Europe grant 101120726 ([dAIEDGE](https://daiedge.eu)). Validated using the [vLab](https://vlab.daiedge.eu) environment. Special thanks to Giulio Gambardella for contributions.
