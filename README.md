@@ -451,6 +451,8 @@ The framework operates on standard benchmark datasets and does not require perso
 
 All experiments are defined through explicit configuration tuples and a documented evaluation pipeline. The implementation is open, allowing independent verification and external auditing of results.
 
+For audit evidence, see [`docs/governance-reproducibility-record.md`](docs/governance-reproducibility-record.md) and [`docs/eu-ai-act-gdpr-compliance-proof.md`](docs/eu-ai-act-gdpr-compliance-proof.md).
+
 ### Responsible Use and Boundaries
 
 E\*3 is not intended for use in high-stakes decision-making scenarios without additional safeguards. Applications in areas such as hiring, credit scoring, legal assessment, or surveillance require domain-specific validation and oversight. The framework provides recommendations, not decisions, and responsibility for deployment remains with the user.
