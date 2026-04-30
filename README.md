@@ -1,8 +1,7 @@
-# E*3: Energy-Efficient Embedding Optimization
-### Optimizing Embedding Models for Edge-Class Hardware
+# E*3: Optimizing Embedding Models for Edge-Class Hardware
 
 <p align="center">
-  <img src="logo.png" alt="E*3 Logo" width="250" style="border-radius: 10px;"/>
+  <img src="logo.png" alt="E*3 Logo" width="450" style="border-radius: 10px;"/>
 </p>
 
 <p align="center">
@@ -463,6 +462,16 @@ Responsible use extends beyond initial selection. Models should be evaluated bef
 ### Alignment with EU Principles
 
 The project supports key elements of Trustworthy AI, including human oversight, technical reliability, transparency, and attention to environmental impact.
+
+### Ethics-by-Design Checklist
+
+| Item              | Explanation                                            | Check mark |
+| ----------------- | ------------------------------------------------------ | ---------- |
+| Data quality      | Data is complete, valid, and free from major errors.   | ✓          |
+| Fairness          | Outputs were checked for bias or uneven performance.   | ✓          |
+| Transparency      | Data sources, limits, and expected use are documented. | ✓          |
+| Release readiness | Checklist reviewed before release.                     | ✓          |
+
 
 </details>
 
